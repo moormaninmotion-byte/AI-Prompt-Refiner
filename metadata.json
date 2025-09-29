@@ -1,0 +1,5 @@
+{
+  "name": "Copy of AI Prompt Refiner",
+  "description": "An application where a user proposes a challenge to an AI, and the AI formulates an efficient and idealized prompt. The app helps users refine their prompts by determining their objective and composing a better prompt or asking follow-up questions. It also provides a cost estimation for using the prompt with various GenAI services.",
+  "requestFramePermissions": []
+}
