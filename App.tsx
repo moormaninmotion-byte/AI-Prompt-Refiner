@@ -2,17 +2,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { ComparisonView } from './components/ComparisonView';
 import { CostEstimator } from './components/CostEstimator';
-import { refinePrompt } from './services/geminiService';
+import { refinePrompt, getPromptSuggestions } from './services/geminiService';
 import type { RefinedPromptResponse, ModelConfig, InteractionHistoryItem } from './types';
 import { MagicWandIcon } from './components/icons/MagicWandIcon';
-import { ApiKeyInput } from './components/ApiKeyInput';
+// import { ApiKeyInput } from './components/ApiKeyInput';
 import { InputPanel } from './components/InputPanel';
 import { HistoryPanel } from './components/HistoryPanel';
-import { PromptTemplates } from './components/PromptTemplates';
+import { PromptSuggestions } from './components/PromptSuggestions';
 
 const App: React.FC = () => {
   const [userInput, setUserInput] = useState<string>('');
-  const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('gemini-api-key') || '');
+  // FIX: Remove apiKey state. API key should be handled via environment variables.
+  // const [apiKey, setApiKey] = useState<string>(() => localStorage.getItem('gemini-api-key') || '');
   const [apiResponse, setApiResponse] = useState<RefinedPromptResponse | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +34,9 @@ const App: React.FC = () => {
         return [];
     }
   });
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [isSuggestionsLoading, setIsSuggestionsLoading] = useState<boolean>(false);
+
 
   const generateCaptcha = useCallback(() => {
     setCaptchaNum1(Math.floor(Math.random() * 10) + 1);
@@ -40,9 +44,10 @@ const App: React.FC = () => {
     setCaptchaAnswer('');
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('gemini-api-key', apiKey);
-  }, [apiKey]);
+  // FIX: Remove useEffect for apiKey as it's no longer in state.
+  // useEffect(() => {
+  //   localStorage.setItem('gemini-api-key', apiKey);
+  // }, [apiKey]);
   
   useEffect(() => {
     localStorage.setItem('prompt-refiner-history', JSON.stringify(history));
@@ -53,10 +58,11 @@ const App: React.FC = () => {
   }, [generateCaptcha]);
 
   const handleRefinePrompt = useCallback(async () => {
-    if (!apiKey.trim()) {
-        setError('Please provide your Gemini API key before refining a prompt.');
-        return;
-    }
+    // FIX: Remove API key check from UI.
+    // if (!apiKey.trim()) {
+    //     setError('Please provide your Gemini API key before refining a prompt.');
+    //     return;
+    // }
     if (!userInput.trim()) {
       setError('Please enter a prompt idea first.');
       return;
@@ -71,7 +77,8 @@ const App: React.FC = () => {
     setApiResponse(null);
 
     try {
-      const result = await refinePrompt(userInput, modelConfig, apiKey);
+      // FIX: Remove apiKey from refinePrompt call.
+      const result = await refinePrompt(userInput, modelConfig);
       setApiResponse(result);
 
       // Add to history
@@ -92,13 +99,15 @@ const App: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [userInput, modelConfig, apiKey, captchaAnswer, captchaNum1, captchaNum2, generateCaptcha]);
+  // FIX: Remove apiKey from dependency array.
+  }, [userInput, modelConfig, captchaAnswer, captchaNum1, captchaNum2, generateCaptcha]);
   
   const handleClear = useCallback(() => {
     if (window.confirm("Are you sure you want to clear your input and the refined prompt? This action cannot be undone.")) {
         setUserInput('');
         setApiResponse(null);
         setError(null);
+        setSuggestions([]);
     }
   }, []);
 
@@ -118,11 +127,34 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const handleSelectTemplate = useCallback((template: string) => {
-    setUserInput(template);
+  const handleGetSuggestions = useCallback(async () => {
+    if (!userInput.trim()) {
+        setError('Please enter a prompt idea first to get suggestions.');
+        return;
+    }
+
+    setIsSuggestionsLoading(true);
+    setError(null);
+    setSuggestions([]);
+
+    try {
+        const result = await getPromptSuggestions(userInput);
+        setSuggestions(result);
+    } catch (e) {
+        console.error(e);
+        setError('An error occurred while fetching suggestions. Please check the console and try again.');
+    } finally {
+        setIsSuggestionsLoading(false);
+    }
+  }, [userInput]);
+
+  const handleSelectSuggestion = useCallback((suggestion: string) => {
+      setUserInput(suggestion);
+      setSuggestions([]);
   }, []);
-  
-  const isApiKeyMissing = !apiKey.trim();
+
+  // FIX: Remove isApiKeyMissing variable.
+  // const isApiKeyMissing = !apiKey.trim();
 
   return (
     <div className="min-h-screen bg-brand-primary flex flex-col items-center p-4 sm:p-6 lg:p-8 font-sans">
@@ -139,14 +171,15 @@ const App: React.FC = () => {
           </p>
         </header>
 
-        <div className="w-full max-w-3xl mx-auto mb-8 animate-fade-in" style={{ animationDelay: '50ms' }}>
+        {/* FIX: Remove ApiKeyInput component and associated warning message. */}
+        {/* <div className="w-full max-w-3xl mx-auto mb-8 animate-fade-in" style={{ animationDelay: '50ms' }}>
           <ApiKeyInput apiKey={apiKey} setApiKey={setApiKey} />
           {isApiKeyMissing && (
              <p className="text-center text-yellow-400 text-sm mt-2 animate-fade-in">
                 Please enter your API key above to enable prompt refinement.
              </p>
           )}
-        </div>
+        </div> */}
 
         <main className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div className="flex flex-col gap-8 animate-slide-in-up" style={{ animationDelay: '100ms' }}>
@@ -156,15 +189,22 @@ const App: React.FC = () => {
                 onRefine={handleRefinePrompt}
                 onClear={handleClear}
                 isLoading={isLoading}
-                isApiKeyMissing={isApiKeyMissing}
                 config={modelConfig}
                 setConfig={setModelConfig}
                 captchaNum1={captchaNum1}
                 captchaNum2={captchaNum2}
                 captchaAnswer={captchaAnswer}
                 setCaptchaAnswer={setCaptchaAnswer}
+                onGetSuggestions={handleGetSuggestions}
+                isSuggestionsLoading={isSuggestionsLoading}
             />
-            <PromptTemplates onSelectTemplate={handleSelectTemplate} />
+            {(isSuggestionsLoading || suggestions.length > 0) && (
+              <PromptSuggestions
+                suggestions={suggestions}
+                isLoading={isSuggestionsLoading}
+                onSelectSuggestion={handleSelectSuggestion}
+              />
+            )}
           </div>
           <div className="flex flex-col gap-8 animate-slide-in-up" style={{ animationDelay: '200ms' }}>
             <HistoryPanel 
@@ -174,7 +214,7 @@ const App: React.FC = () => {
             />
 
             {error && (
-              <div className="bg-red-500/20 border border-red-500 text-red-300 p-4 rounded-lg">
+              <div className="bg-red-500/20 border border-red-500 text-red-300 p-4 rounded-md">
                 <p className="font-semibold">Error</p>
                 <p>{error}</p>
               </div>
