@@ -1,14 +1,24 @@
-
 import React, { useMemo } from 'react';
+import { Box, Card, CardContent, Grid, List, ListItem, ListItemText, Typography } from '@mui/material';
+import { MonetizationOn as TokenIcon } from '@mui/icons-material';
 import { AI_SERVICES, TOKEN_CALC_FACTOR } from '../constants';
-import { TokenIcon } from './icons/TokenIcon';
 
 interface CostEstimatorProps {
   inputPrompt: string;
   outputPrompt: string;
 }
 
+/**
+ * A component that estimates and displays the potential cost of a prompt interaction
+ * across various Generative AI services based on token count.
+ * @param {CostEstimatorProps} props The component props.
+ * @returns {React.ReactElement | null} The rendered cost estimator or null if no prompts are provided.
+ */
 export const CostEstimator: React.FC<CostEstimatorProps> = ({ inputPrompt, outputPrompt }) => {
+  /**
+   * Calculates the estimated number of input and output tokens.
+   * Note: This is a rough estimation where 1 token is approximately 4 characters.
+   */
   const { inputTokens, outputTokens } = useMemo(() => {
     const calcTokens = (p: string) => p ? Math.ceil(p.length / TOKEN_CALC_FACTOR) : 0;
     return {
@@ -17,49 +27,63 @@ export const CostEstimator: React.FC<CostEstimatorProps> = ({ inputPrompt, outpu
     };
   }, [inputPrompt, outputPrompt]);
 
+  /**
+   * Formats a number into a currency string, providing higher precision for very small costs.
+   * @param {number} cost The cost to format.
+   * @returns {string} The formatted cost string (e.g., "$0.000035").
+   */
   const formatCost = (cost: number) => {
     if (cost < 0.0001 && cost > 0) {
-        return `$${cost.toPrecision(2)}`;
+      return `$${cost.toPrecision(2)}`;
     }
     return `$${cost.toFixed(6)}`;
   };
   
+  // Do not render the component if there is no input or output prompt.
   if (!inputPrompt && !outputPrompt) return null;
 
   return (
-    <div className="bg-brand-secondary p-4 rounded-md shadow-lg">
-      <div className="flex items-center gap-3 mb-3">
-        <TokenIcon className="w-6 h-6 text-brand-accent" />
-        <h2 className="text-2xl font-semibold text-brand-light">Interaction Cost Analysis</h2>
-      </div>
-      <div className="grid grid-cols-2 gap-4 bg-brand-primary p-3 rounded-md mb-3">
-        <div className="text-center">
-            <span className="font-medium text-brand-text">Input Tokens</span>
-            <p className="text-2xl font-bold text-brand-accent">{inputTokens}</p>
-        </div>
-        <div className="text-center">
-            <span className="font-medium text-brand-text">Output Tokens</span>
-            <p className="text-2xl font-bold text-brand-accent">{outputTokens}</p>
-        </div>
-      </div>
+    <Card>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <TokenIcon color="primary" />
+          <Typography variant="h5" component="h2">Interaction Cost Analysis</Typography>
+        </Box>
+        
+        <Box sx={{ p: 2, bgcolor: 'background.default', borderRadius: 1, mb: 2 }}>
+          <Grid container spacing={2} textAlign="center">
+            <Grid item xs={6}>
+              <Typography variant="body1" color="text.secondary">Input Tokens</Typography>
+              <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>{inputTokens}</Typography>
+            </Grid>
+            <Grid item xs={6}>
+              <Typography variant="body1" color="text.secondary">Output Tokens</Typography>
+              <Typography variant="h4" color="primary" sx={{ fontWeight: 'bold' }}>{outputTokens}</Typography>
+            </Grid>
+          </Grid>
+        </Box>
       
-      <p className="text-sm text-gray-400 mb-3 text-center">
-        *Total cost is for one full interaction (Input + Output).
-      </p>
-      <div className="space-y-2">
-        {AI_SERVICES.map((service) => {
-          const inputCost = (inputTokens / 1000) * service.inputCostPer1kTokens;
-          const outputCost = (outputTokens / 1000) * service.outputCostPer1kTokens;
-          const totalCost = inputCost + outputCost;
+        <Typography variant="caption" display="block" textAlign="center" color="text.secondary" sx={{ mb: 1 }}>
+          *Total cost is for one full interaction (Input + Output).
+        </Typography>
 
-          return (
-            <div key={service.name} className="flex justify-between items-center p-2 bg-brand-primary/50 rounded-md">
-              <span className="text-sm text-brand-text">{service.name}</span>
-              <span className="text-sm font-mono text-green-400">{formatCost(totalCost)}</span>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+        <List dense>
+          {AI_SERVICES.map((service) => {
+            const inputCost = (inputTokens / 1000) * service.inputCostPer1kTokens;
+            const outputCost = (outputTokens / 1000) * service.outputCostPer1kTokens;
+            const totalCost = inputCost + outputCost;
+
+            return (
+              <ListItem key={service.name} sx={{ bgcolor: 'rgba(255, 255, 255, 0.05)', borderRadius: 1, mb: 0.5 }}>
+                <ListItemText primary={service.name} />
+                <Typography variant="body2" sx={{ fontFamily: 'monospace', color: '#66bb6a' }}>
+                  {formatCost(totalCost)}
+                </Typography>
+              </ListItem>
+            );
+          })}
+        </List>
+      </CardContent>
+    </Card>
   );
 };

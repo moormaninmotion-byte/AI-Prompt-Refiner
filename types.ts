@@ -22,4 +22,10 @@ export interface InteractionHistoryItem {
   refinedPrompt: string;
   rationale: string;
   modelConfig: ModelConfig;
+  demonstrationOutputs?: {
+    original: string | null;
+    refined: string | null;
+    originalError?: string;
+    refinedError?: string;
+  } | null;
 }
