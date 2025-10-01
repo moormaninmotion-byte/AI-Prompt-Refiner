@@ -1,0 +1,44 @@
+substitutions:
+  _SERVICE_NAME: ''
+  _REGION: 'us-east5'
+  _AR_REPO: ''
+  _PROJECT_ID: 'gen-lang-client-0473731579'
+  _COMMIT_SHA: ''
+   
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}']
+
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--port=8080'
+      - '--quiet'
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: '300s'  
+# 20 minutes
+# Adjust the timeout as needed based on your build and deployment time. 
+
+
+# To trigger this build, you can use the following gcloud command:
+# gcloud builds submit --config cloudbuild.yaml
+# --ons=_SERVICE_NAME="your-service-name",
+# --_REGION="your-region",_AR_REPO="your-artifact-repo",
+#-- _PROJECT_ID="your-project-id",_COMMIT_SHA="$(git rev-parse --short HEAD)" .
+
