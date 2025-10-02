@@ -1,9 +1,9 @@
 substitutions:
-  _SERVICE_NAME: ''
+  _SERVICE_NAME: 'ai-prompt-refiner'
   _REGION: 'us-east5'
-  _AR_REPO: ''
+  _AR_REPO: 'gcr.io'
   PROJECT_ID: 'gen-lang-client-0473731579'
-  COMMIT_SHA: ''
+
    
 steps:
   - name: 'gcr.io/cloud-builders/docker'
@@ -29,17 +29,8 @@ images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_AR_REPO}/${_SERVICE_NAME}:${COMMIT_SHA}'
 
 options:
-  logging: CLOUD_LOGGING_ONLY
+  logging: 'CLOUD_LOGGING_ONLY'
+  substitionOption: 'ALLOW_LOOSE'
 
 timeout: '300s'  
-# 20 minutes
-# Adjust the timeout as needed based on your build and deployment time. 
-
-
-# To trigger this build, you can use the following gcloud command:
-# gcloud builds submit --config cloudbuild.yaml
-# --ons=_SERVICE_NAME="your-service-name",
-# --_REGION="your-region",_AR_REPO="your-artifact-repo",
-#-- _PROJECT_ID="your-project-id",_COMMIT_SHA="$(git rev-parse --short HEAD)" .
-
 
